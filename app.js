@@ -6,7 +6,7 @@ const subEl = $('#sub');
 const backEl = $('#back');
 const toastEl = $('#toast');
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
@@ -137,7 +137,7 @@ window.addEventListener('hashchange', route);
 function unitCard(u, isLocal) {
   const id = esc(u.id);
   const name = esc(u.title || u.id);
-  const meta = [u.words ? u.words + ' 词' : '', u.phrases ? u.phrases + ' 短语' : '', u.subtitle ? esc(u.subtitle) : '']
+  const meta = [u.book ? esc(u.book) : '', u.words ? u.words + ' 词' : '', u.phrases ? u.phrases + ' 短语' : '', u.subtitle ? esc(u.subtitle) : '']
     .filter(Boolean).join(' · ');
   const del = isLocal ? `<button class="del" data-del="${id}" aria-label="删除">✕</button>` : '';
   return `<div class="unit-card" data-open="${id}">

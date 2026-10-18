@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.1",
   "units": [
     {
       "id": "unit1",
@@ -7,15 +7,17 @@
       "subtitle": "Text A · Toward a brighter future for all",
       "words": 81,
       "phrases": 30,
-      "updated": "2026-10-18"
+      "updated": "2026-10-18",
+      "book": "新视野大学英语（四版·读写教程1）"
     },
     {
       "id": "b2u1",
       "title": "Unit 1 Good to great",
-      "subtitle": "扫描教材 · Reading 1/2",
+      "subtitle": "Reading 1 + Reading 2 · 扫描导入",
       "words": 65,
       "phrases": 22,
-      "updated": "2026-10-18"
+      "updated": "2026-10-18",
+      "book": "新编大学英语（四版·综合教程1）"
     }
   ]
 }
