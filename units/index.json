@@ -1,5 +1,5 @@
 {
-  "version": "1.1.1",
+  "version": "1.2.0",
   "units": [
     {
       "id": "unit1",
@@ -7,6 +7,14 @@
       "subtitle": "Text A · Toward a brighter future for all",
       "words": 81,
       "phrases": 30,
+      "updated": "2026-10-18"
+    },
+    {
+      "id": "b2u1",
+      "title": "Unit 1 Good to great",
+      "subtitle": "扫描教材 · Reading 1/2",
+      "words": 65,
+      "phrases": 22,
       "updated": "2026-10-18"
     }
   ]
