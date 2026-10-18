@@ -1,5 +1,5 @@
 /* 离线缓存：App 外壳 + 单元 JSON */
-const CACHE = 'b1u1app-v5';
+const CACHE = 'b1u1app-v6';
 const SHELL = [
   './', './index.html', './style.css', './app.js', './manifest.webmanifest',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',

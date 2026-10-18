@@ -1,5 +1,5 @@
 {
-  "version": "1.2.1",
+  "version": "1.3.0",
   "units": [
     {
       "id": "unit1",
@@ -18,6 +18,69 @@
       "phrases": 22,
       "updated": "2026-10-18",
       "book": "新编大学英语（四版·综合教程1）"
+    },
+    {
+      "id": "b2u2",
+      "title": "Unit 2 The pace of life",
+      "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
+      "book": "新编大学英语（四版·综合教程1）",
+      "words": 66,
+      "phrases": 20,
+      "updated": "2026-10-18"
+    },
+    {
+      "id": "b2u3",
+      "title": "Unit 3 In the name of love",
+      "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
+      "book": "新编大学英语（四版·综合教程1）",
+      "words": 56,
+      "phrases": 9,
+      "updated": "2026-10-18"
+    },
+    {
+      "id": "b2u4",
+      "title": "Unit 4 The art of choice",
+      "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
+      "book": "新编大学英语（四版·综合教程1）",
+      "words": 59,
+      "phrases": 10,
+      "updated": "2026-10-18"
+    },
+    {
+      "id": "b2u5",
+      "title": "Unit 5 Bridge cultural gaps",
+      "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
+      "book": "新编大学英语（四版·综合教程1）",
+      "words": 72,
+      "phrases": 15,
+      "updated": "2026-10-18"
+    },
+    {
+      "id": "b2u6",
+      "title": "Unit 6 Think for a change",
+      "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
+      "book": "新编大学英语（四版·综合教程1）",
+      "words": 54,
+      "phrases": 21,
+      "updated": "2026-10-18"
+    },
+    {
+      "id": "b2u7",
+      "title": "Unit 7 Have a nice day!",
+      "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
+      "book": "新编大学英语（四版·综合教程1）",
+      "words": 51,
+      "phrases": 10,
+      "updated": "2026-10-18"
+    },
+    {
+      "id": "b2u8",
+      "title": "Unit 8 Communication at your fingertips",
+      "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
+      "book": "新编大学英语（四版·综合教程1）",
+      "words": 77,
+      "phrases": 13,
+      "updated": "2026-10-18"
     }
   ]
 }
