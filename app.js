@@ -1,4 +1,4 @@
-/* B1U1 点读 App —— 目录 / 单元点读 / 导入 */
+/* B1U1 点读 App v1.1 —— 目录 / 单元点读 / 导入 / 英美音 / 锁竖屏 */
 const $ = (s, r = document) => r.querySelector(s);
 const appEl = $('#app');
 const titleEl = $('#title');
@@ -6,12 +6,19 @@ const subEl = $('#sub');
 const backEl = $('#back');
 const toastEl = $('#toast');
 
+const APP_VERSION = '1.1.0';
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
+};
+
 const state = {
-  units: [],      // 远端单元元数据（units/index.json）
-  local: [],      // 本机导入的单元（IndexedDB）
-  unit: null,     // 当前打开的单元
-  showCn: true,
-  showExt: true,
+  units: [],
+  local: [],
+  unit: null,
+  hideCn: false,
+  hideExt: LS.get('hideExt', '0') === '1',
+  accent: LS.get('accent', 'uk'), // uk / us
 };
 
 /* ---------- 小工具 ---------- */
@@ -30,7 +37,7 @@ async function fetchJSON(path, opts) {
   return r.json();
 }
 
-/* ---------- 本地存储（IndexedDB） ---------- */
+/* ---------- IndexedDB ---------- */
 function idb() {
   return new Promise((res, rej) => {
     const q = indexedDB.open('b1u1app', 1);
@@ -69,6 +76,21 @@ async function idbDel(id) {
 /* ---------- 发音 ---------- */
 const audio = new Audio();
 audio.preload = 'auto';
+function ttsLang() { return state.accent === 'us' ? 'en-US' : 'en-GB'; }
+function speakTTS(text) {
+  if (!window.speechSynthesis) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = ttsLang();
+    u.rate = 0.95;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  } catch (e) { }
+}
+function itemAudio(item) {
+  if (state.accent === 'us') return item.audio_us || item.audio || item.audio_uk || null;
+  return item.audio_uk || item.audio || item.audio_us || null;
+}
 function playSrc(src, fallbackText) {
   try {
     audio.pause();
@@ -78,25 +100,30 @@ function playSrc(src, fallbackText) {
   } catch (e) { speakTTS(fallbackText); }
   return null;
 }
-function speakTTS(text) {
-  if (!window.speechSynthesis) return;
-  try {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-GB';
-    u.rate = 0.95;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  } catch (e) { /* ignore */ }
-}
 function playWord(item) {
-  if (item.audio) { playSrc(item.audio, item.w || item.p); return; }
   const text = item.w || item.p;
-  const url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=1';
+  const src = itemAudio(item);
+  if (src) { playSrc(src, text); return; }
+  const type = state.accent === 'us' ? 2 : 1;
+  const url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=' + type;
   try {
     const a = new Audio(url);
     a.play().catch(() => speakTTS(text));
   } catch (e) { speakTTS(text); }
 }
+
+/* ---------- 锁竖屏（尽力而为：Android Chrome PWA 有效；iOS 不支持） ---------- */
+async function lockPortrait() {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('portrait').catch(() => { });
+    }
+  } catch (e) { }
+}
+document.addEventListener('click', function once() {
+  document.removeEventListener('click', once);
+  lockPortrait();
+}, { once: true });
 
 /* ---------- 路由 ---------- */
 function route() {
@@ -126,7 +153,7 @@ function unitCard(u, isLocal) {
 function renderTOC() {
   state.unit = null;
   titleEl.textContent = '点读单词';
-  subEl.textContent = '目录 · 选择单元开始';
+  subEl.textContent = '目录 · v' + APP_VERSION;
   backEl.hidden = true;
   const remote = state.units.map(u => unitCard(u, false)).join('');
   const local = state.local.map(u => unitCard(u, true)).join('');
@@ -140,10 +167,12 @@ function renderTOC() {
     ${remote || '<div class="hint">还没有单元。把 unitX.json 放进 units/ 并在 units/index.json 里登记即可。</div>'}
     ${local ? '<div class="section-title">本机导入</div>' + local : ''}
     <div class="hint">
-      · 单元页：点单词发音，点中文/行空白测试自己，▶ 朗读整节。<br>
+      · 单元页：点单词发音，点中文/行空白自测，▶ 朗读整节。<br>
+      · 顶部可切换 <b>英音/美音</b>、<b>隐藏中文</b>、<b>隐藏搭配</b>（设置会记住）。<br>
       · 导入：选择 JSON 单元文件（格式见 <code>units/example.json</code>），会保存在本机。<br>
-      · 新增教材单元：Agent 生成 <code>units/unitN.json</code> 并登记到 <code>units/index.json</code>，点“刷新列表”即可。
-    </div>`;
+      · 新增教材单元：Agent 生成 <code>units/unitN.json</code> 并登记到 <code>units/index.json</code>。
+    </div>
+    <div class="hint" style="text-align:center;margin-top:24px">v${APP_VERSION} · 点读单词 App</div>`;
   $('#importBtn').onclick = () => $('#fileInput').click();
   $('#fileInput').onchange = onImportFile;
   $('#refreshBtn').onclick = loadIndex;
@@ -193,11 +222,7 @@ async function openUnit(id) {
   if (id.indexOf('local-') === 0) {
     unit = state.local.find(u => u.id === id);
   } else {
-    try {
-      unit = await fetchJSON('units/' + encodeURIComponent(id) + '.json');
-    } catch (e) {
-      unit = null;
-    }
+    try { unit = await fetchJSON('units/' + encodeURIComponent(id) + '.json'); } catch (e) { unit = null; }
   }
   if (!unit) { toast('单元不存在或加载失败'); renderTOC(); return; }
   state.unit = unit;
@@ -208,7 +233,8 @@ function rowHTML(item, idx, kind) {
   const name = kind === 'w' ? item.w : item.p;
   const ipa = item.ipa ? `<span class="ipa">${esc(item.ipa)}</span>` : '';
   const mk = item.cet4 ? '<span class="mk4">▲</span>' : '';
-  const cls = item.audio ? 'row' : 'row missing';
+  const hasAudio = !!(itemAudio(item));
+  const cls = 'row' + (hasAudio ? '' : ' missing') + (state.hideCn ? ' hid' : '');
   const cn = kind === 'w' ? esc(item.cn || '') : '';
   const ext = kind === 'w' && item.ext ? `<div class="ext">搭配：${esc(item.ext)}</div>` : '';
   const phCn = kind === 'p' ? `<div class="ph-cn">${esc(item.cn || '')}</div>` : '';
@@ -219,12 +245,17 @@ function rowHTML(item, idx, kind) {
     </div>`;
 }
 
+function applyBodyClasses() {
+  document.body.classList.toggle('hide-ext', state.hideExt);
+}
+
 function renderUnit(unit) {
   const words = unit.words || [];
   const phrases = unit.phrases || [];
   titleEl.textContent = unit.title || '单元';
-  subEl.textContent = words.length + ' 词' + (phrases.length ? ' · ' + phrases.length + ' 短语' : '');
+  subEl.textContent = words.length + ' 词' + (phrases.length ? ' · ' + phrases.length + ' 短语' : '') + ' · v' + APP_VERSION;
   backEl.hidden = false;
+  applyBodyClasses();
   const wordsHTML = words.map((w, i) => rowHTML(w, i, 'w')).join('');
   const phrasesHTML = phrases.map((p, i) => rowHTML(p, i, 'p')).join('');
   appEl.innerHTML = `
@@ -233,26 +264,38 @@ function renderUnit(unit) {
       <div class="small">${esc(unit.subtitle || '')}</div>
     </div>
     <div class="tools">
-      <button class="btn" id="hideAll">隐藏中文</button>
-      <button class="btn" id="showAll">显示中文</button>
-      <button class="btn" id="toggleExt">显示搭配</button>
+      <button class="btn" id="toggleCn">${state.hideCn ? '显示中文' : '隐藏中文'}</button>
+      <button class="btn" id="toggleExt">${state.hideExt ? '显示搭配' : '隐藏搭配'}</button>
+      <button class="btn" id="toggleAccent">${state.accent === 'us' ? '美音' : '英音'}</button>
       <button class="btn" id="stopBtn">■ 停止</button>
     </div>
     ${words.length ? '<h2 class="group">单词<button class="play" data-playsec="w">▶ 朗读</button></h2>' + wordsHTML : ''}
     ${phrases.length ? '<h2 class="group">短语<button class="play" data-playsec="p">▶ 朗读</button></h2>' + phrasesHTML : ''}
     <div class="hint">点英文单词/短语发音；点行空白或中文处隐藏中文；▲ 为四级词。</div>`;
 
-  $('#hideAll').onclick = () => { appEl.querySelectorAll('.row').forEach(r => r.classList.add('hid')); };
-  $('#showAll').onclick = () => { appEl.querySelectorAll('.row').forEach(r => r.classList.remove('hid')); };
-  $('#toggleExt').onclick = () => {
-    state.showExt = !state.showExt;
-    document.body.classList.toggle('hide-ext', !state.showExt);
-    $('#toggleExt').textContent = state.showExt ? '显示搭配' : '隐藏搭配';
+  $('#toggleCn').onclick = () => {
+    state.hideCn = !state.hideCn;
+    appEl.querySelectorAll('.row').forEach(r => r.classList.toggle('hid', state.hideCn));
+    $('#toggleCn').textContent = state.hideCn ? '显示中文' : '隐藏中文';
   };
-  $('#stopBtn').onclick = () => { try { audio.pause(); audio.src = ''; } catch (e) {} if (window.speechSynthesis) speechSynthesis.cancel(); };
-  document.body.classList.toggle('hide-ext', !state.showExt);
+  $('#toggleExt').onclick = () => {
+    state.hideExt = !state.hideExt;
+    LS.set('hideExt', state.hideExt ? '1' : '0');
+    applyBodyClasses();
+    $('#toggleExt').textContent = state.hideExt ? '显示搭配' : '隐藏搭配';
+  };
+  $('#toggleAccent').onclick = () => {
+    state.accent = state.accent === 'us' ? 'uk' : 'us';
+    LS.set('accent', state.accent);
+    $('#toggleAccent').textContent = state.accent === 'us' ? '美音' : '英音';
+    toast(state.accent === 'us' ? '已切换为美音' : '已切换为英音');
+  };
+  $('#stopBtn').onclick = () => {
+    try { audio.pause(); audio.src = ''; } catch (e) { }
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    queueToken++;
+  };
 
-  // 点击：单词发音 / 行切换中文
   appEl.querySelectorAll('[data-play]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -264,13 +307,11 @@ function renderUnit(unit) {
   appEl.querySelectorAll('.row').forEach(row => {
     row.addEventListener('click', () => row.classList.toggle('hid'));
   });
-  // ▶ 朗读整节
   appEl.querySelectorAll('[data-playsec]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const kind = btn.dataset.playsec;
-      const list = kind === 'w' ? words : phrases;
-      playQueue(list, kind);
+      playQueue(kind === 'w' ? words : phrases, kind);
     });
   });
 }
@@ -284,9 +325,10 @@ function playQueue(list, kind) {
     if (i >= list.length) return;
     const item = list[i++];
     const text = kind === 'w' ? item.w : item.p;
-    if (item.audio) {
+    const src = itemAudio(item);
+    if (src) {
       audio.pause();
-      audio.src = item.audio;
+      audio.src = src;
       audio.onended = next;
       audio.play().catch(() => { setTimeout(next, 900); });
     } else {
@@ -309,7 +351,22 @@ async function loadIndex() {
 }
 
 backEl.addEventListener('click', () => { location.hash = ''; });
+
+/* service worker（版本更新时提示） */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => { });
+  }).catch(() => { });
+  let refreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshed) return;
+    refreshed = true;
+  });
 }
+
+/* 适配老数据：unit1 若只有 audio 字段 */
+(function migrate() {
+  // 无操作：读取时 itemAudio 已兼容 audio 字段
+})();
+
 loadIndex();
