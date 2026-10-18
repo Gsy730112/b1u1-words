@@ -6,7 +6,7 @@ const subEl = $('#sub');
 const backEl = $('#back');
 const toastEl = $('#toast');
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
@@ -347,7 +347,8 @@ async function loadIndex() {
     state.units = [];
   }
   state.local = await idbAll().catch(() => []);
-  if (!location.hash) renderTOC();
+  if (location.hash) route();
+  else renderTOC();
 }
 
 backEl.addEventListener('click', () => { location.hash = ''; });
