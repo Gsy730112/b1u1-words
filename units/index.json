@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.3.1",
   "units": [
     {
       "id": "unit1",
@@ -69,8 +69,8 @@
       "title": "Unit 7 Have a nice day!",
       "subtitle": "《新编大学英语（第四版）综合教程 1（智慧版）》· Reading 1 + Reading 2",
       "book": "新编大学英语（四版·综合教程1）",
-      "words": 51,
-      "phrases": 10,
+      "words": 76,
+      "phrases": 19,
       "updated": "2026-10-18"
     },
     {

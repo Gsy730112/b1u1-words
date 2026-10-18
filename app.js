@@ -6,7 +6,7 @@ const subEl = $('#sub');
 const backEl = $('#back');
 const toastEl = $('#toast');
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
