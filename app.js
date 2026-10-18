@@ -6,7 +6,7 @@ const subEl = $('#sub');
 const backEl = $('#back');
 const toastEl = $('#toast');
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.2';
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
@@ -143,7 +143,7 @@ function unitCard(u, isLocal) {
   return `<div class="unit-card" data-open="${id}">
       <div class="unit-cover">${esc((u.title || '?').replace(/^Unit\s*/i, '').trim().slice(0, 2) || 'U')}</div>
       <div class="unit-info">
-        <div class="unit-name">${name}${isLocal ? '<span class="badge">本地</span>' : ''}</div>
+        <div class="unit-name">${name}${isLocal ? '<span class="badge">' + (u._synced ? '电脑同步' : '本地') + '</span>' : ''}</div>
         <div class="unit-meta">${meta || '点开学习'}</div>
       </div>
       ${del}
@@ -159,9 +159,8 @@ function renderTOC() {
   const local = state.local.map(u => unitCard(u, true)).join('');
   appEl.innerHTML = `
     <div class="actions">
-      <button class="btn primary" id="importBtn">＋ 导入单元</button>
+      <button class="btn primary" id="syncBtn">⇄ 电脑同步</button>
       <button class="btn" id="refreshBtn">刷新列表</button>
-      <input type="file" id="fileInput" accept=".json,application/json" hidden>
     </div>
     <div class="section-title">教材单元</div>
     ${remote || '<div class="hint">还没有单元。把 unitX.json 放进 units/ 并在 units/index.json 里登记即可。</div>'}
@@ -169,12 +168,11 @@ function renderTOC() {
     <div class="hint">
       · 单元页：点单词发音，点中文/行空白自测，▶ 朗读整节。<br>
       · 顶部可切换 <b>英音/美音</b>、<b>隐藏中文</b>、<b>隐藏搭配</b>（设置会记住）。<br>
-      · 导入：选择 JSON 单元文件（格式见 <code>units/example.json</code>），会保存在本机。<br>
+      · <b>电脑同步</b>：手机与电脑连同一 Wi-Fi，点「电脑同步」从电脑上的 <code>app/units/</code> 文件夹导入或更新单元。<br>
       · 新增教材单元：Agent 生成 <code>units/unitN.json</code> 并登记到 <code>units/index.json</code>。
     </div>
     <div class="hint" style="text-align:center;margin-top:24px">v${APP_VERSION} · 点读单词 App</div>`;
-  $('#importBtn').onclick = () => $('#fileInput').click();
-  $('#fileInput').onchange = onImportFile;
+  $('#syncBtn').onclick = renderSyncPanel;
   $('#refreshBtn').onclick = loadIndex;
   appEl.querySelectorAll('[data-open]').forEach(el => {
     el.addEventListener('click', e => {
@@ -219,9 +217,8 @@ async function onImportFile(e) {
 /* ---------- 单元页 ---------- */
 async function openUnit(id) {
   let unit = null;
-  if (id.indexOf('local-') === 0) {
-    unit = state.local.find(u => u.id === id);
-  } else {
+  unit = state.local.find(u => u.id === id) || null;
+  if (!unit) {
     try { unit = await fetchJSON('units/' + encodeURIComponent(id) + '.json'); } catch (e) { unit = null; }
   }
   if (!unit) { toast('单元不存在或加载失败'); renderTOC(); return; }
@@ -336,6 +333,67 @@ function playQueue(list, kind) {
       setTimeout(next, 1200);
     }
   })();
+}
+
+
+/* ---------- 电脑同步（基于电脑端文件夹） ---------- */
+async function renderSyncPanel() {
+  const saved = LS.get('syncUrl', 'http://192.168.0.123:8788');
+  titleEl.textContent = '电脑同步';
+  subEl.textContent = '从电脑上的单元文件夹导入 / 更新';
+  backEl.hidden = false;
+  appEl.innerHTML = `
+    <div class="unit-hero">
+      <div class="small">电脑端同步地址（手机与电脑需同一 Wi-Fi）</div>
+      <input id="syncUrl" value="${esc(saved)}" style="width:100%;margin-top:8px;padding:10px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--fg)">
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary" id="syncNow">开始同步</button>
+        <button class="btn" id="syncProbe">测试连接</button>
+        <button class="btn" id="syncClear">清空同步单元</button>
+      </div>
+      <div id="syncLog" class="hint">电脑端把新单元 JSON 放进 app/units/ 并登记到 units/index.json，这里点「开始同步」即可导入或更新。</div>
+    </div>`;
+  $('#syncNow').onclick = () => doSync(false);
+  $('#syncProbe').onclick = () => doSync(true);
+  $('#syncClear').onclick = async () => {
+    const all = await idbAll();
+    for (const u of all) if (u._synced) await idbDel(u.id);
+    state.local = await idbAll();
+    $('#syncLog').textContent = '已清空电脑同步的单元（重新点开始同步可再次拉取）';
+  };
+
+  async function doSync(probeOnly) {
+    const base = ($('#syncUrl').value || '').trim().replace(/\/+$/, '');
+    LS.set('syncUrl', base);
+    const log = (s) => { $('#syncLog').innerHTML = s; };
+    try {
+      log('连接 ' + esc(base) + ' …');
+      const idx = await fetchJSON(base + '/units/index.json?ts=' + Date.now());
+      const list = idx.units || [];
+      if (probeOnly) {
+        log('✅ 连接成功：电脑上有 ' + list.length + ' 个单元<br>' + list.map(u => esc(u.title)).join('<br>'));
+        return;
+      }
+      let n = 0;
+      for (const u of list) {
+        try {
+          log('同步中 ' + (n + 1) + '/' + list.length + '：' + esc(u.title || u.id));
+          const unit = await fetchJSON(base + '/units/' + encodeURIComponent(u.id) + '.json?ts=' + Date.now());
+          unit._local = true;
+          unit._synced = true;
+          await idbPut(unit);
+          n++;
+        } catch (e) {
+          log('跳过 ' + esc(u.id) + '：' + esc(e.message));
+        }
+      }
+      state.local = await idbAll();
+      renderTOC();
+      toast('同步完成：' + n + ' 个单元');
+    } catch (e) {
+      log('同步失败：' + esc(e.message) + '<br>检查：同一 Wi-Fi、电脑同步服务已启动、地址正确。');
+    }
+  }
 }
 
 /* ---------- 初始化 ---------- */
